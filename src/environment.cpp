@@ -8,6 +8,8 @@
 // using templates for processPointClouds so also include .cpp to help linker
 #include "processPointClouds.cpp"
 
+Lidar *gpLidar;
+
 std::vector<Car> initHighway(bool renderScene, pcl::visualization::PCLVisualizer::Ptr& viewer)
 {
 
@@ -42,13 +44,22 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
     // ----------------------------------------------------
     
     // RENDER OPTIONS
-    bool renderScene = true;
+    bool renderScene = false;
     std::vector<Car> cars = initHighway(renderScene, viewer);
+
     
-    // TODO:: Create lidar sensor 
+    // TODO:: Create lidar sensor
+    gpLidar = new Lidar(cars, 0.0);
+    const typename pcl::PointCloud<pcl::PointXYZ>::Ptr pcd{ gpLidar->scan() };
+    //renderRays(viewer, gpLidar->position, pcd);
+    //renderPointCloud(viewer, pcd, "Point cloud");
+
 
     // TODO:: Create point processor
-  
+    ProcessPointClouds<pcl::PointXYZ> pointProcessor;
+    auto segPairs = pointProcessor.SegmentPlane(pcd, 100, 0.2);
+    renderPointCloud(viewer, segPairs.first, "obstacles", Color(1, 0, 0));
+    renderPointCloud(viewer, segPairs.second, "plane", Color(0, 1, 0));
 }
 
 
