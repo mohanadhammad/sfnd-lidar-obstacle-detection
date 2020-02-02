@@ -6,6 +6,8 @@
 #include "../../processPointClouds.h"
 // using templates for processPointClouds so also include .cpp to help linker
 #include "../../processPointClouds.cpp"
+#include <utility>
+#include <tuple>
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr CreateData()
 {
@@ -61,6 +63,47 @@ pcl::visualization::PCLVisualizer::Ptr initScene()
   	return viewer;
 }
 
+std::pair<int, int> selectRandomPtsIndices(const typename pcl::PointCloud<pcl::PointXYZ>::Ptr cloud)
+{
+	std::pair<int, int> twoRandPtsIndices;
+	
+	// select first random point
+	twoRandPtsIndices.first = rand() % cloud->points.size();
+
+	for (size_t i = 0; i < cloud->points.size(); i++) {		
+		// select second random point
+		twoRandPtsIndices.second = rand() % cloud->points.size();
+
+		// ensure that they are not the same line
+		if (twoRandPtsIndices.second != twoRandPtsIndices.first) {
+			break;
+		}
+	}
+	return twoRandPtsIndices;
+}
+
+std::tuple<float, float, float> fitLine(const typename pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, const std::pair<int, int> &indices)
+{
+	const float x1{ cloud->points[indices.first].x };
+	const float y1{ cloud->points[indices.first].y };
+
+	const float x2{ cloud->points[indices.second].x };
+	const float y2{ cloud->points[indices.second].y };
+
+	const float a{ y1 - y2 };
+	const float b{ x2 - x1 };
+	const float c{ (x1 * y2) - (x2 * y1) };
+
+	return std::make_tuple(a, b, c);
+}
+
+float calcPerpDistToLine(const pcl::PointXYZ &pt, const float a, const float b, const float c)
+{
+	const float nemo = (a * pt.x) + (b * pt.y) + c;
+	const float deno = std::sqrt(a*a + b*b);
+	return abs(nemo / (deno + std::numeric_limits<float>::epsilon()));
+}
+
 std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int maxIterations, float distanceTol)
 {
 	std::unordered_set<int> inliersResult;
@@ -68,12 +111,34 @@ std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int ma
 	
 	// TODO: Fill in this function
 
-	// For max iterations 
+	// For max iterations
+	for (size_t i = 0; i < maxIterations; ++i) {
+		
+		// Randomly sample subset and fit line
+		auto indices = selectRandomPtsIndices(cloud);
 
-	// Randomly sample subset and fit line
+		float a, b, c;
+		std::tie(a, b, c) = fitLine(cloud, indices);
 
-	// Measure distance between every point and fitted line
-	// If distance is smaller than threshold count it as inlier
+		std::unordered_set<int> tmpInliersResult;
+		// Measure distance between every point and fitted line
+		for (size_t j = 0; j < cloud->points.size(); ++j)
+		{
+			const float d = calcPerpDistToLine(cloud->points[j], a, b, c);
+
+			// If distance is smaller than threshold count it as inlier
+			if (d < distanceTol)
+			{
+				tmpInliersResult.insert(j);
+			}	
+		}
+
+		if (tmpInliersResult.size() > inliersResult.size())
+		{
+			// swap contents if the new iteration has more inliers than the old ones
+			inliersResult.swap(tmpInliersResult);
+		}
+	}
 
 	// Return indicies of inliers from fitted line with most inliers
 	
@@ -92,7 +157,7 @@ int main ()
 	
 
 	// TODO: Change the max iteration and distance tolerance arguments for Ransac function
-	std::unordered_set<int> inliers = Ransac(cloud, 0, 0);
+	std::unordered_set<int> inliers = Ransac(cloud, 100, 0.5);
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr  cloudInliers(new pcl::PointCloud<pcl::PointXYZ>());
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloudOutliers(new pcl::PointCloud<pcl::PointXYZ>());
