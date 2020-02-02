@@ -82,6 +82,36 @@ std::pair<int, int> selectRandomPtsIndices(const typename pcl::PointCloud<pcl::P
 	return twoRandPtsIndices;
 }
 
+std::tuple<int, int, int> selectRandom3PtsIndices(const typename pcl::PointCloud<pcl::PointXYZ>::Ptr cloud)
+{
+	int first, second, third;
+	
+	// select first random point
+	first = rand() % cloud->points.size();
+
+	for (size_t i = 0; i < cloud->points.size(); i++) {		
+		// select second random point
+		second = rand() % cloud->points.size();
+
+		// ensure that they are not the same line
+		if (second != first) {
+			break;
+		}
+	}
+
+	for (size_t i = 0; i < cloud->points.size(); i++) {		
+		// select second random point
+		third = rand() % cloud->points.size();
+
+		// ensure that they are not the same line
+		if (third != first && third != second) {
+			break;
+		}
+	}
+
+	return std::make_tuple(first, second, third);
+}
+
 std::tuple<float, float, float> fitLine(const typename pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, const std::pair<int, int> &indices)
 {
 	const float x1{ cloud->points[indices.first].x };
@@ -97,6 +127,27 @@ std::tuple<float, float, float> fitLine(const typename pcl::PointCloud<pcl::Poin
 	return std::make_tuple(a, b, c);
 }
 
+std::tuple<float, float, float, float> fitPlane(const typename pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int index1, int index2, int index3)
+{
+	const float x1{ cloud->points[index1].x };
+	const float y1{ cloud->points[index1].y };
+	const float z1{ cloud->points[index1].z };
+
+	const float x2{ cloud->points[index2].x };
+	const float y2{ cloud->points[index2].y };
+	const float z2{ cloud->points[index2].z };
+
+	const float x3{ cloud->points[index3].x };
+	const float y3{ cloud->points[index3].y };
+	const float z3{ cloud->points[index3].z };
+
+	const float i = (y2-y1)*(z3-z1) - (z2-z1)*(y3-y1);
+	const float j = (z2-z1)*(x3-x1) - (x2-x1)*(z3-z1);
+	const float k = (x2-x1)*(y3-y1) - (y2-y1)*(x3-x1);
+
+	return std::make_tuple(i, j, k, -(i*x1 + j*y1 + k*z1));
+}
+
 float calcPerpDistToLine(const pcl::PointXYZ &pt, const float a, const float b, const float c)
 {
 	const float nemo = (a * pt.x) + (b * pt.y) + c;
@@ -104,7 +155,14 @@ float calcPerpDistToLine(const pcl::PointXYZ &pt, const float a, const float b, 
 	return (fabs(nemo) / (deno + std::numeric_limits<float>::epsilon()));
 }
 
-std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int maxIterations, float distanceTol)
+float calcPerpDistToPlane(const pcl::PointXYZ &pt, const float a, const float b, const float c, const float d)
+{
+	const float nemo = (a * pt.x) + (b * pt.y) + (c*pt.z) + d;
+	const float deno = std::sqrt(a*a + b*b + c*c);
+	return (fabs(nemo) / (deno + std::numeric_limits<float>::epsilon()));
+}
+
+std::unordered_set<int> RansacLine(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int maxIterations, float distanceTol)
 {
 	auto startTime = std::chrono::steady_clock::now();
 
@@ -152,7 +210,63 @@ std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int ma
 	
 	auto endTime = std::chrono::steady_clock::now();
 	std::chrono::duration<double> elapsed_seconds = endTime - startTime;
-	std::cout << "RANSAC elapsedtime = " << elapsed_seconds.count() << " sec " << std::endl;
+	std::cout << "RANSAC Line elapsedtime = " << elapsed_seconds.count() << " sec " << std::endl;
+
+	return inliersResult;
+
+}
+
+std::unordered_set<int> RansacPlane(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int maxIterations, float distanceTol)
+{
+	auto startTime = std::chrono::steady_clock::now();
+
+	std::unordered_set<int> inliersResult;
+	srand(time(NULL));
+	
+	// TODO: Fill in this function
+
+	// For max iterations
+	for (size_t i = 0; i < maxIterations; ++i) {
+		
+		// Randomly sample subset and fit line
+		int index1, index2, index3;
+		std::tie(index1, index2, index3) = selectRandom3PtsIndices(cloud);
+
+		float a, b, c, d;
+		std::tie(a, b, c, d) = fitPlane(cloud, index1, index2, index3);
+
+		std::unordered_set<int> tmpInliersResult;
+		tmpInliersResult.insert(index1);
+		tmpInliersResult.insert(index2);
+		tmpInliersResult.insert(index3);
+
+		// Measure distance between every point and fitted line
+		for (size_t j = 0; j < cloud->points.size(); ++j)
+		{
+			if (tmpInliersResult.count(j) == 0)
+			{
+				const float d = calcPerpDistToPlane(cloud->points[j], a, b, c, d);
+
+				// If distance is smaller than threshold count it as inlier
+				if (d < distanceTol)
+				{
+					tmpInliersResult.insert(j);
+				}	
+			}
+		}
+
+		if (tmpInliersResult.size() > inliersResult.size())
+		{
+			// copy contents if the new iteration has more inliers than the old ones
+			inliersResult = tmpInliersResult;
+		}
+	}
+
+	// Return indicies of inliers from fitted line with most inliers
+	
+	auto endTime = std::chrono::steady_clock::now();
+	std::chrono::duration<double> elapsed_seconds = endTime - startTime;
+	std::cout << "RANSAC Plane elapsedtime = " << elapsed_seconds.count() << " sec " << std::endl;
 
 	return inliersResult;
 
@@ -165,11 +279,13 @@ int main ()
 	pcl::visualization::PCLVisualizer::Ptr viewer = initScene();
 
 	// Create data
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = CreateData();
+	// pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = CreateData();
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = CreateData3D();
 	
 
 	// TODO: Change the max iteration and distance tolerance arguments for Ransac function
-	std::unordered_set<int> inliers = Ransac(cloud, 100, 0.5);
+	// std::unordered_set<int> inliers = RansacLine(cloud, 100, 0.5);
+	std::unordered_set<int> inliers = RansacPlane(cloud, 100, 0.5);
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr  cloudInliers(new pcl::PointCloud<pcl::PointXYZ>());
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloudOutliers(new pcl::PointCloud<pcl::PointXYZ>());

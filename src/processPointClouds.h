@@ -17,6 +17,8 @@
 #include <vector>
 #include <ctime>
 #include <chrono>
+#include <tuple>
+#include <unordered_set>
 #include "render/box.h"
 
 template<typename PointT>
@@ -45,6 +47,12 @@ public:
     typename pcl::PointCloud<PointT>::Ptr loadPcd(std::string file);
 
     std::vector<boost::filesystem::path> streamPcd(std::string dataPath);
+
+private:
+    std::tuple<int, int, int> selectRandom3PtsIndices(const typename pcl::PointCloud<PointT>::Ptr cloud);
+    std::tuple<float, float, float, float> fitPlane(const typename pcl::PointCloud<PointT>::Ptr cloud, int index1, int index2, int index3);
+    float calcPerpDistToPlane(const PointT &pt, const float a, const float b, const float c, const float d);
+    std::unordered_set<int> ransacPlane(const typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceTol);
   
 };
 #endif /* PROCESSPOINTCLOUDS_H_ */
