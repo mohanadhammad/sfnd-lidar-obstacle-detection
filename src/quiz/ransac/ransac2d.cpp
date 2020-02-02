@@ -101,11 +101,13 @@ float calcPerpDistToLine(const pcl::PointXYZ &pt, const float a, const float b, 
 {
 	const float nemo = (a * pt.x) + (b * pt.y) + c;
 	const float deno = std::sqrt(a*a + b*b);
-	return abs(nemo / (deno + std::numeric_limits<float>::epsilon()));
+	return (fabs(nemo) / (deno + std::numeric_limits<float>::epsilon()));
 }
 
 std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int maxIterations, float distanceTol)
 {
+	auto startTime = std::chrono::steady_clock::now();
+
 	std::unordered_set<int> inliersResult;
 	srand(time(NULL));
 	
@@ -121,27 +123,37 @@ std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int ma
 		std::tie(a, b, c) = fitLine(cloud, indices);
 
 		std::unordered_set<int> tmpInliersResult;
+		tmpInliersResult.insert(indices.first);
+		tmpInliersResult.insert(indices.second);
+
 		// Measure distance between every point and fitted line
 		for (size_t j = 0; j < cloud->points.size(); ++j)
 		{
-			const float d = calcPerpDistToLine(cloud->points[j], a, b, c);
-
-			// If distance is smaller than threshold count it as inlier
-			if (d < distanceTol)
+			if (tmpInliersResult.count(j) == 0)
 			{
-				tmpInliersResult.insert(j);
-			}	
+				const float d = calcPerpDistToLine(cloud->points[j], a, b, c);
+
+				// If distance is smaller than threshold count it as inlier
+				if (d < distanceTol)
+				{
+					tmpInliersResult.insert(j);
+				}	
+			}
 		}
 
 		if (tmpInliersResult.size() > inliersResult.size())
 		{
-			// swap contents if the new iteration has more inliers than the old ones
-			inliersResult.swap(tmpInliersResult);
+			// copy contents if the new iteration has more inliers than the old ones
+			inliersResult = tmpInliersResult;
 		}
 	}
 
 	// Return indicies of inliers from fitted line with most inliers
 	
+	auto endTime = std::chrono::steady_clock::now();
+	std::chrono::duration<double> elapsed_seconds = endTime - startTime;
+	std::cout << "RANSAC elapsedtime = " << elapsed_seconds.count() << " sec " << std::endl;
+
 	return inliersResult;
 
 }
