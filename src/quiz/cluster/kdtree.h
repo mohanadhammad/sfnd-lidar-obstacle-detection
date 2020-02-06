@@ -3,7 +3,6 @@
 
 #include "../../render/render.h"
 
-
 // Structure to represent node of kd tree
 struct Node
 {
@@ -73,10 +72,65 @@ struct KdTree
         insertHelper(&root, 0, point, id);
 	}
 
+    float calcEuclideanDist(float dx, float dy)
+    {
+        return sqrt(dx*dx + dy*dy);
+    }
+
+    void searchHelper(std::vector<int> &ids, Node **node, int depth, std::vector<float> target, float distanceTol)
+    {
+        // terminating condition (check for the last node (point) in the tree)
+        if (*node != nullptr)
+        {
+            const int index = depth % 2; // decide which axis to check against based on the depth level
+            const float diff = (*node)->point[index] - target[index]; // measure the difference from the traget point
+
+            // the size of the box is choosed as double of the distance tolerance
+            if (diff < distanceTol)
+            {
+                const float dx = (*node)->point[0] - target[0];
+                const float dy = (*node)->point[1] - target[1];
+                const float euclDist = calcEuclideanDist(dx, dy);
+
+                if (euclDist < distanceTol)
+                {
+                    // the point is inside.
+                    ids.push_back( (*node)->id );
+                }
+            }
+
+            if (target[index] > (*node)->point[index])
+            {
+                // branch to the right side of the node
+                searchHelper(ids, &(*node)->right, depth+1, target, distanceTol);
+
+                // if the target point is too close to the node then check also the other
+                // side of the node (branch).
+                if (diff < distanceTol)
+                {
+                    searchHelper(ids, &(*node)->left, depth+1, target, distanceTol);
+                }
+            }
+            else
+            {
+                // branch to the left side of the node
+                searchHelper(ids, &(*node)->left, depth+1, target, distanceTol);
+
+                // if the target point is too close to the node then check also the other
+                // side of the node (branch).
+                if (diff < distanceTol)
+                {
+                    searchHelper(ids, &(*node)->right, depth+1, target, distanceTol);
+                }
+            }
+        }
+    }
+
 	// return a list of point ids in the tree that are within distance of target
 	std::vector<int> search(std::vector<float> target, float distanceTol)
 	{
-		std::vector<int> ids;
+        std::vector<int> ids;
+        searchHelper(ids, &root, 0, target, distanceTol);
 		return ids;
 	}
 	
