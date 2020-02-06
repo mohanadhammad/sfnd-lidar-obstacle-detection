@@ -7,7 +7,7 @@
 // Structure to represent node of kd tree
 struct Node
 {
-	std::vector<float> point;
+    std::vector<float> point; // x, y
 	int id;
 	Node* left;
 	Node* right;
@@ -25,11 +25,52 @@ struct KdTree
 	: root(NULL)
 	{}
 
+    void insertHelper(Node **node, int depth, std::vector<float> point, int id)
+    {
+        // the recursivness will end when all points are inserted (memory allocated for them <- Node)
+
+        if (*node == nullptr)
+        {
+            // if the current point is not inserted then add node for it
+            *node = new Node(point, id);
+        }
+        else
+        {
+            const int cd{ depth % 2 }; // to check if even or odd
+
+            if (point[cd] < (*node)->point[cd])
+            {
+                // on the left
+                insertHelper(&((*node)->left), depth+1, point, id);
+            }
+            else
+            {
+                // on the right
+                insertHelper(&((*node)->right), depth+1, point, id);
+            }
+        }
+    }
+
 	void insert(std::vector<float> point, int id)
 	{
 		// TODO: Fill in this function to insert a new point into the tree
 		// the function should create a new node and place correctly with in the root 
 
+        // the logic to insert a point starts by checking the root of the tree.
+        // At first point, the algorithm will detect that the current node (root at this instance)
+        // is not allocated. Therefore, it will allocate memory for it and make it point to
+        // the inserted point.
+
+        // At second point, the algo will find that the current node (root at this instance) is
+        // already allocated so it will compare the inserted point x-axis to it to determine at
+        // which side it should be inserted then allocate memory (right/left node) for it.
+
+        // At third point, the algo will find that the current node (root at this instance) is
+        // already allocated so it will compare the inserted point x-axis to it to determine at
+        // which side it should be inserted. if the 2nd right/left node already allocated with another
+        // point then increment the depth one more and check against the 2nd node the location and so on.
+
+        insertHelper(&root, 0, point, id);
 	}
 
 	// return a list of point ids in the tree that are within distance of target
