@@ -39,7 +39,8 @@ typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(ty
 
 
 template<typename PointT>
-std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SeparateClouds(pcl::PointIndices::Ptr inliers, typename pcl::PointCloud<PointT>::Ptr cloud) 
+std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SeparateClouds(
+        pcl::PointIndices::Ptr inliers, typename pcl::PointCloud<PointT>::Ptr cloud)
 {
     // TODO: Create two new point clouds, one cloud with obstacles and other with segmented plane
     typename pcl::PointCloud<PointT>::Ptr obstacleCloud(new pcl::PointCloud<PointT>());
@@ -61,7 +62,8 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
 }
 
 template<typename PointT>
-std::tuple<int, int, int> ProcessPointClouds<PointT>::selectRandom3PtsIndices(const typename pcl::PointCloud<PointT>::Ptr cloud)
+std::tuple<int, int, int> ProcessPointClouds<PointT>::selectRandom3PtsIndices(
+        const typename pcl::PointCloud<PointT>::Ptr cloud)
 {
 	int first, second, third;
 	
@@ -92,7 +94,8 @@ std::tuple<int, int, int> ProcessPointClouds<PointT>::selectRandom3PtsIndices(co
 }
 
 template<typename PointT>
-std::tuple<float, float, float, float> ProcessPointClouds<PointT>::fitPlane(const typename pcl::PointCloud<PointT>::Ptr cloud, int index1, int index2, int index3)
+std::tuple<float, float, float, float> ProcessPointClouds<PointT>::fitPlane(
+        const typename pcl::PointCloud<PointT>::Ptr cloud, int index1, int index2, int index3)
 {
 	const float x1{ cloud->points[index1].x };
 	const float y1{ cloud->points[index1].y };
@@ -114,7 +117,8 @@ std::tuple<float, float, float, float> ProcessPointClouds<PointT>::fitPlane(cons
 }
 
 template<typename PointT>
-float ProcessPointClouds<PointT>::calcPerpDistToPlane(const PointT &pt, const float a, const float b, const float c, const float d)
+float ProcessPointClouds<PointT>::calcPerpDistToPlane(
+        const PointT &pt, const float a, const float b, const float c, const float d)
 {
 	const float nemo = (a * pt.x) + (b * pt.y) + (c*pt.z) + d;
 	const float deno = std::sqrt(a*a + b*b + c*c);
@@ -122,7 +126,8 @@ float ProcessPointClouds<PointT>::calcPerpDistToPlane(const PointT &pt, const fl
 }
 
 template<typename PointT>
-std::unordered_set<int> ProcessPointClouds<PointT>::ransacPlane(const typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceTol)
+std::unordered_set<int> ProcessPointClouds<PointT>::ransacPlane(
+        const typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceTol)
 {
 	auto startTime = std::chrono::steady_clock::now();
 
@@ -218,7 +223,7 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
     std::cout << "plane segmentation took " << elapsedTime.count() << " milliseconds" << std::endl;
 
     // std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> segResult = SeparateClouds(inliers,cloud);
-    std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> segResult(cloudInliers, cloudOutliers);
+    std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> segResult(cloudOutliers, cloudInliers);
     
     return segResult;
 }
