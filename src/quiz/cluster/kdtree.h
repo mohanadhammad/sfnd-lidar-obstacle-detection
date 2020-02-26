@@ -99,7 +99,7 @@ struct KdTree
             // the size of the box is choosed as double of the distance tolerance
             if (isInsideBox)
             {
-                const float euclDist{
+                const float euclDist {
                         calcEuclideanDist(p_node->point[0] - target[0], p_node->point[1] - target[1])
                 };
 
