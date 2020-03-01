@@ -110,8 +110,12 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer)
 
     for (auto cluster : clusters)
     {
-        Color randColor = colors[ rand() % colors.size() ];
-        renderPointCloud(viewer, cluster, "obstCloud"+std::to_string(clusterId), randColor);
+        int colorID = rand() % colors.size();
+        renderPointCloud(viewer, cluster, "obstCloud"+std::to_string(clusterId), colors[colorID]);
+
+        Box boundingBox = pointProcessorI->BoundingBox(cluster);
+        renderBox(viewer, boundingBox, clusterId, colors[colorID]);
+
         clusterId++;
     }
 
