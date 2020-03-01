@@ -20,6 +20,7 @@
 #include <tuple>
 #include <unordered_set>
 #include "render/box.h"
+#include "kdtree.h"
 
 template<typename PointT>
 class ProcessPointClouds {
@@ -54,5 +55,32 @@ private:
     float calcPerpDistToPlane(const PointT &pt, const std::array<float, 4> coeff);
     std::unordered_set<int> ransacPlane(const typename pcl::PointCloud<PointT>::Ptr cloud, unsigned int maxIterations, float distanceTol);
   
+    ///
+    /// \brief proximity
+    /// \param index
+    /// \param points
+    /// \param tree
+    /// \param distanceTol
+    /// \param processed
+    /// \param cluster
+    ///
+    void proximity(
+        size_t index,
+        const std::vector<std::vector<float>>& points,
+        KdTree3D *tree,
+        float distanceTol,
+        std::vector<bool>& processed,
+        std::vector<int> &cluster);
+
+    ///
+    /// \brief euclideanCluster
+    /// \param points
+    /// \param tree
+    /// \param distanceTol
+    /// \return
+    ///
+    std::vector<std::vector<int>> euclideanCluster(const std::vector<std::vector<float>>& points,
+            KdTree3D *tree,
+            float distanceTol);
 };
 #endif /* PROCESSPOINTCLOUDS_H_ */
