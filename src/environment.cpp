@@ -7,6 +7,8 @@
 #include "processPointClouds.h"
 // using templates for processPointClouds so also include .cpp to help linker
 #include "processPointClouds.cpp"
+#include <ctime>
+#include <chrono>
 
 Lidar *gpLidar;
 
@@ -82,21 +84,36 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
 
 void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer)
 {
+    srand(time(NULL));
+
     ProcessPointClouds<pcl::PointXYZI> *pointProcessorI = new ProcessPointClouds<pcl::PointXYZI>();
 
     typename pcl::PointCloud<pcl::PointXYZI>::Ptr cloud =
             pointProcessorI->loadPcd("../src/sensors/data/pcd/data_1/0000000000.pcd");
 
     // Filtration
-    Eigen::Vector4f minLeaf {-20.0, -10.0, -5.0, 1.0};
-    Eigen::Vector4f maxLeaf { 20.0,  10.0,  5.0, 1.0};
+    Eigen::Vector4f minLeaf {-10.0, -7.0, -2.0, 1.0};
+    Eigen::Vector4f maxLeaf { 20.0,  7.0,  5.0, 1.0};
     cloud = pointProcessorI->FilterCloud(cloud, 0.05, minLeaf, maxLeaf);
-//    renderPointCloud(viewer, cloud, "City Block");
+    //renderPointCloud(viewer, cloud, "City Block");
 
     // Segmentation
-    auto segPairs = pointProcessorI->SegmentPlane(cloud, 50, 0.2);
-    renderPointCloud(viewer, segPairs.first, "obstacles", Color(0, 1, 0));
-    renderPointCloud(viewer, segPairs.second, "plane", Color(1, 0, 0));
+    auto segPairs = pointProcessorI->SegmentPlane(cloud, 100, 0.15);
+    //renderPointCloud(viewer, segPairs.first, "obstacles", Color(1, 0, 0));
+    renderPointCloud(viewer, segPairs.second, "road", Color(0, 1, 0));
+
+
+    // Clustering
+    int clusterId = 0;
+    std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> clusters = pointProcessorI->Clustering(segPairs.first, 0.5, 30, 10000);
+    std::vector<Color> colors = {Color(1,0,0), Color(1,1,0), Color(0,0,1)};
+
+    for (auto cluster : clusters)
+    {
+        Color randColor = colors[ rand() % colors.size() ];
+        renderPointCloud(viewer, cluster, "obstCloud"+std::to_string(clusterId), randColor);
+        clusterId++;
+    }
 
     // free the heap from this pointer
     delete pointProcessorI;
