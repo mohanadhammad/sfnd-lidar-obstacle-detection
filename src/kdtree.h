@@ -13,13 +13,16 @@ struct Node
 	{}
 };
 
-struct KdTree3D
+template<int Dim>
+struct KdTree
 {
 	Node* root;
 
-	KdTree3D()
+	KdTree()
 	: root(NULL)
-	{}
+	{
+        static_assert((Dim > 0) && (Dim <= 3), "Kd tree dimension is not within valid range");
+    }
 
     void insertHelper(Node **node, int depth, std::vector<float> point, int id)
     {
@@ -32,7 +35,7 @@ struct KdTree3D
         }
         else
         {
-            const int cd{ depth % 3 }; // to check if even or odd
+            const int cd{ depth % Dim }; // to check if even or odd
 
             if (point[cd] < (*node)->point[cd])
             {
@@ -69,17 +72,28 @@ struct KdTree3D
         insertHelper(&root, 0, point, id);
 	}
 
-    float calcEuclideanDist(float dx, float dy, float dz)
+    float calcEuclideanDist(const std::vector<float> &delta)
     {
-        return std::sqrt(dx*dx + dy*dy + dz*dz);
+        float sumSqr = 0.0;
+
+        for (size_t i = 0; i < delta.size(); ++i)
+        {
+            sumSqr += delta[i] * delta[i];
+        }
+
+        return std::sqrt(sumSqr);
     }
 
     bool isPointInsideBox(const std::vector<float> &point, const std::vector<float> &origin, float tol)
     {
-        // check on x-axis
-        return ((point[0] <= (origin[0] + tol)) && (point[0] >= (origin[0] - tol)) &&
-                (point[1] <= (origin[1] + tol)) && (point[1] >= (origin[1] - tol)) &&
-                (point[2] <= (origin[2] + tol)) && (point[2] >= (origin[2] - tol)));
+        bool check = true;
+
+        for (size_t i = 0; i < point.size(); ++i)
+        {
+            check &= (point[i] <= (origin[i] + tol)) && (point[i] >= (origin[i] - tol));
+        }
+        
+        return check;
     }
 
     void searchHelper(
@@ -97,11 +111,13 @@ struct KdTree3D
             // the size of the box is choosed as double of the distance tolerance
             if (isInsideBox)
             {
-                const float euclDist {
-                        calcEuclideanDist(p_node->point[0] - target[0], // dx
-                                          p_node->point[1] - target[1], // dy
-                                          p_node->point[2] - target[2]) // dz
-                };
+                std::vector<float> delta;
+                for (size_t i = 0; i < Dim; i++)
+                {
+                    delta.push_back(p_node->point[i] - target[i]);
+                }
+                
+                const float euclDist { calcEuclideanDist(delta) };
 
                 if (euclDist < distanceTol)
                 {
@@ -111,7 +127,7 @@ struct KdTree3D
             }
 
             // decide which axis to check against based on the depth level.
-            const int index = depth % 3;
+            const int index = depth % Dim;
 
             // measure the difference from the traget point.
             const float diff = p_node->point[index] - target[index];

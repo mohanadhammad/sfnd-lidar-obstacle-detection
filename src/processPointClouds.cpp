@@ -205,7 +205,7 @@ template<typename PointT>
 void ProcessPointClouds<PointT>::proximity(
         size_t index,
         const std::vector<std::vector<float> > &points,
-        KdTree3D *tree,
+        KdTree<3> *tree,
         float distanceTol,
         std::vector<bool> &processed,
         std::vector<int> &cluster)
@@ -229,9 +229,8 @@ void ProcessPointClouds<PointT>::proximity(
 }
 
 template<typename PointT>
-std::vector< std::vector<int> > ProcessPointClouds<PointT>::euclideanCluster(
-        const std::vector< std::vector<float> > &points,
-        KdTree3D *tree,
+std::vector< std::vector<int> > ProcessPointClouds<PointT>::euclideanCluster(const std::vector< std::vector<float> > &points,
+        KdTree<3> *tree,
         float distanceTol)
 {
     std::vector<std::vector<int>> clusters;
@@ -344,7 +343,7 @@ std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::C
 //        clusters.push_back(cluster);
 //    }
 
-    KdTree3D tree;
+    KdTree<3> tree;
 
     std::vector< std::vector<float> > points;
     for (int index = 0; index < cloud->points.size(); ++index)

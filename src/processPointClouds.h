@@ -67,7 +67,7 @@ private:
     void proximity(
         size_t index,
         const std::vector<std::vector<float>>& points,
-        KdTree3D *tree,
+        KdTree<3> *tree,
         float distanceTol,
         std::vector<bool>& processed,
         std::vector<int> &cluster);
@@ -79,8 +79,9 @@ private:
     /// \param distanceTol
     /// \return
     ///
-    std::vector<std::vector<int>> euclideanCluster(const std::vector<std::vector<float>>& points,
-            KdTree3D *tree,
+    std::vector<std::vector<int>> euclideanCluster(
+            const std::vector<std::vector<float>>& points,
+            KdTree<3> *tree,
             float distanceTol);
 };
 #endif /* PROCESSPOINTCLOUDS_H_ */
