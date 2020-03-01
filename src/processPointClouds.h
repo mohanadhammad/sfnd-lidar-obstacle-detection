@@ -49,10 +49,10 @@ public:
     std::vector<boost::filesystem::path> streamPcd(std::string dataPath);
 
 private:
-    std::tuple<int, int, int> selectRandom3PtsIndices(const typename pcl::PointCloud<PointT>::Ptr cloud);
-    std::tuple<float, float, float, float> fitPlane(const typename pcl::PointCloud<PointT>::Ptr cloud, int index1, int index2, int index3);
-    float calcPerpDistToPlane(const PointT &pt, const float a, const float b, const float c, const float d);
-    std::unordered_set<int> ransacPlane(const typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceTol);
+    std::unordered_set<int> chooseRandPoints(const typename pcl::PointCloud<PointT>::Ptr cloud, uint16_t numOfPoints);
+    std::array<float, 4> fitPlane(const typename pcl::PointCloud<PointT>::Ptr cloud, std::unordered_set<int>::iterator inliersItr);
+    float calcPerpDistToPlane(const PointT &pt, const std::array<float, 4> coeff);
+    std::unordered_set<int> ransacPlane(const typename pcl::PointCloud<PointT>::Ptr cloud, unsigned int maxIterations, float distanceTol);
   
 };
 #endif /* PROCESSPOINTCLOUDS_H_ */

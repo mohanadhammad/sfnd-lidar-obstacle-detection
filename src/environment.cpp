@@ -87,11 +87,16 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer)
     typename pcl::PointCloud<pcl::PointXYZI>::Ptr cloud =
             pointProcessorI->loadPcd("../src/sensors/data/pcd/data_1/0000000000.pcd");
 
-    Eigen::Vector4f minLeaf {-20.0, -10.0, -10.0, 1.0};
-    Eigen::Vector4f maxLeaf { 20.0,  10.0,  10.0, 1.0};
+    // Filtration
+    Eigen::Vector4f minLeaf {-20.0, -10.0, -5.0, 1.0};
+    Eigen::Vector4f maxLeaf { 20.0,  10.0,  5.0, 1.0};
     cloud = pointProcessorI->FilterCloud(cloud, 0.05, minLeaf, maxLeaf);
+//    renderPointCloud(viewer, cloud, "City Block");
 
-    renderPointCloud(viewer, cloud, "City Block");
+    // Segmentation
+    auto segPairs = pointProcessorI->SegmentPlane(cloud, 50, 0.2);
+    renderPointCloud(viewer, segPairs.first, "obstacles", Color(0, 1, 0));
+    renderPointCloud(viewer, segPairs.second, "plane", Color(1, 0, 0));
 
     // free the heap from this pointer
     delete pointProcessorI;
